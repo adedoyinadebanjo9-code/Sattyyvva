@@ -325,6 +325,20 @@
   .card-info .enquire::after{content:"→"; transition:transform 0.25s ease;}
   .card:hover .enquire::after{transform:translateX(4px);}
 
+  .empty-note{
+    grid-column:1/-1;
+    padding:40px 0;
+    font-size:13px;
+    color:var(--ink-soft);
+    font-style:italic;
+  }
+  .error-note{
+    grid-column:1/-1;
+    padding:40px 0;
+    font-size:13px;
+    color:#a53b3b;
+  }
+
   /* placeholder art */
   .ph1{background:linear-gradient(160deg,#e7d3b4 0%, #cdae86 55%, #a98a63 100%);}
   .ph2{background:linear-gradient(160deg,#d9c3a3 0%, #b99a76 55%, #8f7355 100%);}
@@ -416,71 +430,51 @@
   </div>
 
   <!-- DRESSES -->
-  <section class="category" id="dresses">
+  <section class="category" id="dresses" data-category="dresses">
     <div class="category-head">
       <div>
         <span class="eyebrow">01 — Category</span>
         <h3>Dresses</h3>
       </div>
-      <div class="category-count">4 pieces</div>
+      <div class="category-count" data-count>Loading…</div>
     </div>
-    <div class="grid" data-grid>
-      <article class="card"><div class="card-media"><img src="fine.jpg" alt="Adùn Wrap Dress"></div></div><div class="card-info"><div class="name">Beautiful skye clothe</div><div class="price">₦20,000</div><a href="https://wa.me/2348116412960?text=Hi%20Ronnie%2C%20I%20am%20to%20intrested%20in%20a%20dress%20on%20your%20website" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph2"></div></div><div class="card-info"><div class="name">Ẹ̀wà Slip Dress</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph3"></div></div><div class="card-info"><div class="name">Àfẹ́fẹ́ Midi Dress</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph4"></div></div><div class="card-info"><div class="name">Ìlà Maxi Dress</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-    </div>
+    <div class="grid" data-grid></div>
   </section>
 
   <!-- TOPS -->
-  <section class="category" id="tops">
+  <section class="category" id="tops" data-category="tops">
     <div class="category-head">
       <div>
         <span class="eyebrow">02 — Category</span>
         <h3>Tops</h3>
       </div>
-      <div class="category-count">4 pieces</div>
+      <div class="category-count" data-count>Loading…</div>
     </div>
-    <div class="grid" data-grid>
-      <article class="card"><div class="card-media"><div class="ph ph2"></div></div><div class="card-info"><div class="name">Ọ̀wọ̀ Blouse</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph1"></div></div><div class="card-info"><div class="name">Ìmọ́lẹ̀ Cropped Top</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph4"></div></div><div class="card-info"><div class="name">Adé Wrap Top</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph3"></div></div><div class="card-info"><div class="name">Bùnmi Halter Top</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-    </div>
+    <div class="grid" data-grid></div>
   </section>
 
   <!-- BOTTOMS -->
-  <section class="category" id="bottoms">
+  <section class="category" id="bottoms" data-category="bottoms">
     <div class="category-head">
       <div>
         <span class="eyebrow">03 — Category</span>
         <h3>Bottoms</h3>
       </div>
-      <div class="category-count">4 pieces</div>
+      <div class="category-count" data-count>Loading…</div>
     </div>
-    <div class="grid" data-grid>
-      <article class="card"><div class="card-media"><div class="ph ph3"></div></div><div class="card-info"><div class="name">Ìrọ̀nà Wide Trousers</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph4"></div></div><div class="card-info"><div class="name">Àsà Pencil Skirt</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph1"></div></div><div class="card-info"><div class="name">Ọlá High-Waist Shorts</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph2"></div></div><div class="card-info"><div class="name">Ẹwà Maxi Skirt</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-    </div>
+    <div class="grid" data-grid></div>
   </section>
 
   <!-- TWO-PIECES -->
-  <section class="category" id="twopieces">
+  <section class="category" id="twopieces" data-category="twopieces">
     <div class="category-head">
       <div>
         <span class="eyebrow">04 — Category</span>
         <h3>Two-Pieces</h3>
       </div>
-      <div class="category-count">4 pieces</div>
+      <div class="category-count" data-count>Loading…</div>
     </div>
-    <div class="grid" data-grid>
-      <article class="card"><div class="card-media"><div class="ph ph4"></div></div><div class="card-info"><div class="name">Ìdílé Co-ord Set</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph1"></div></div><div class="card-info"><div class="name">Àyọ̀ Set</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph2"></div></div><div class="card-info"><div class="name">Ẹgbọ́n Set</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-      <article class="card"><div class="card-media"><div class="ph ph3"></div></div><div class="card-info"><div class="name">Ìrètí Set</div><div class="price">₦—</div><a href="https://wa.me/234XXXXXXXXXX" class="enquire">Enquire on WhatsApp</a></div></article>
-    </div>
+    <div class="grid" data-grid></div>
   </section>
 
   <footer>
@@ -498,7 +492,7 @@
       </div>
       <div class="footer-col">
         <h4>Contact</h4>
-        <a href="https://wa.me/234XXXXXXXXXX">WhatsApp</a>
+        <a href="https://wa.me/2348116412960?text=Hi%20SATTYYVVAA%2C%20I%27d%20like%20to%20know%20more%20about%20your%20pieces.">WhatsApp</a>
         <a href="https://instagram.com/">Instagram</a>
         <span>Lagos, Nigeria</span>
       </div>
@@ -509,9 +503,56 @@
     </div>
   </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // Reveal product cards on scroll
-  const cards = document.querySelectorAll('.card');
+(() => {
+'use strict';
+
+// Same project the admin console writes to — public/anon key only, reads are
+// restricted by Row Level Security to active=true products (see schema.sql).
+const SUPABASE_URL = "https://rvjqpnqytclsqdgvskti.supabase.co";
+const SUPABASE_KEY = "sb_publishable_0To8-m7bSlVm2x_d-Nk31Q_pxuYGHeP";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const WHATSAPP_NUMBER = "2348116412960"; // +234 811 641 2960
+
+const NGN = n => (n === null || n === undefined || n === '')
+  ? '₦—'
+  : '₦' + Math.max(0, Math.round(Number(n) || 0)).toLocaleString('en-NG');
+
+const CAT_LABEL = { dresses: 'Dresses', tops: 'Tops', bottoms: 'Bottoms', twopieces: 'Two-Pieces' };
+const PH_CLASSES = ['ph1', 'ph2', 'ph3', 'ph4'];
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function whatsappLink(product) {
+  const priceText = product.price ? `Price: ${NGN(product.price)}` : 'Price: on request';
+  const message = `Hi SATTYYVVAA, I'm interested in the ${product.name}. ${priceText}. Could you let me know about sizes and delivery?`;
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
+function cardHtml(product, i) {
+  const media = product.image_url
+    ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}">`
+    : `<div class="ph ${PH_CLASSES[i % PH_CLASSES.length]}"></div>`;
+  const soldOut = product.stock !== null && product.stock !== undefined && Number(product.stock) <= 0;
+  return `
+    <article class="card">
+      <div class="card-media">${media}</div>
+      <div class="card-info">
+        <div class="name">${escapeHtml(product.name)}</div>
+        <div class="price">${soldOut ? 'Sold out' : NGN(product.price)}</div>
+        <a href="${whatsappLink(product)}" class="enquire">Enquire on WhatsApp</a>
+      </div>
+    </article>`;
+}
+
+function pluralize(n) { return n === 1 ? '1 piece' : `${n} pieces`; }
+
+function revealCards(scopeEl) {
+  const cards = scopeEl.querySelectorAll('.card');
   const io = new IntersectionObserver((entries) => {
     entries.forEach((entry, i) => {
       if (entry.isIntersecting) {
@@ -521,10 +562,52 @@
     });
   }, { threshold: 0.15 });
   cards.forEach(c => io.observe(c));
+}
 
-  // If hero video has no real source, keep the gradient background only
-  const heroVideo = document.querySelector('.hero-video');
-  heroVideo.addEventListener('error', () => { heroVideo.style.display = 'none'; }, true);
+async function loadProducts() {
+  const sections = document.querySelectorAll('.category[data-category]');
+  try {
+    const { data, error } = await sb
+      .from('sattyyvvaa_products')
+      .select('*')
+      .eq('active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    sections.forEach(section => {
+      const cat = section.getAttribute('data-category');
+      const grid = section.querySelector('[data-grid]');
+      const countEl = section.querySelector('[data-count]');
+      const items = (data || []).filter(p => p.category === cat);
+
+      countEl.textContent = pluralize(items.length);
+
+      if (!items.length) {
+        grid.innerHTML = `<div class="empty-note">New pieces coming soon — check back shortly, or ask on WhatsApp.</div>`;
+        return;
+      }
+      grid.innerHTML = items.map(cardHtml).join('');
+      revealCards(grid);
+    });
+  } catch (err) {
+    sections.forEach(section => {
+      const grid = section.querySelector('[data-grid]');
+      const countEl = section.querySelector('[data-count]');
+      countEl.textContent = '';
+      grid.innerHTML = `<div class="error-note">Couldn't load pieces right now — please check back soon.</div>`;
+    });
+    console.error('Product load failed:', err);
+  }
+}
+
+loadProducts();
+
+// If hero video has no real source, keep the gradient background only
+const heroVideo = document.querySelector('.hero-video');
+heroVideo.addEventListener('error', () => { heroVideo.style.display = 'none'; }, true);
+
+})();
 </script>
 
 </body>

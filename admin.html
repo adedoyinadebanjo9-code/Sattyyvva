@@ -91,6 +91,10 @@ h2{font-size:16px;margin-bottom:4px}
    </div>
    <div class="field"><label>Price (₦) — leave blank for "Enquire"</label><input id="f_price" type="number" min="0" step="1" placeholder="20000"></div>
    <div class="field"><label>Stock</label><input id="f_stock" type="number" min="0" step="1" value="1"></div>
+   <div class="field"><label>Colour</label><input id="f_colour" placeholder="e.g. Skye blue"></div>
+   <div class="field"><label>Fabric</label><input id="f_fabric" placeholder="e.g. Cotton poplin"></div>
+   <div class="field"><label>Sizes (comma-separated)</label><input id="f_sizes" placeholder="XS,S,M,L,XL"></div>
+   <div class="field"><label>Production time</label><input id="f_production_time" placeholder="e.g. 3–7 working days"></div>
   </div>
   <div class="field"><label>Description (optional)</label><textarea id="f_desc" placeholder="Fabric, fit, sizing notes…"></textarea></div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px">
@@ -172,6 +176,7 @@ $('imgFile').addEventListener('change',async()=>{
 function resetForm(){
  $('editingId').value=''; $('formTitle').textContent='Add a product';
  $('f_name').value=''; $('f_category').value='dresses'; $('f_price').value=''; $('f_stock').value='1'; $('f_desc').value='';
+ $('f_colour').value=''; $('f_fabric').value=''; $('f_sizes').value=''; $('f_production_time').value='';
  $('imgPreview').src=''; $('imgStatus').textContent=''; pendingImageUrl=null;
  $('cancelEditBtn').classList.add('hidden');
 }
@@ -189,6 +194,10 @@ async function saveProduct(){
   price:$('f_price').value===''?null:Number($('f_price').value),
   stock:Number($('f_stock').value||0),
   description:$('f_desc').value.trim(),
+  colour:$('f_colour').value.trim(),
+  fabric:$('f_fabric').value.trim(),
+  sizes:$('f_sizes').value.trim(),
+  production_time:$('f_production_time').value.trim(),
  };
  if(pendingImageUrl) payload.image_url=pendingImageUrl;
  try{
@@ -214,6 +223,7 @@ let productsCache=[];
 function editProduct(p){
  $('editingId').value=p.id; $('formTitle').textContent='Editing: '+p.name;
  $('f_name').value=p.name; $('f_category').value=p.category; $('f_price').value=p.price??''; $('f_stock').value=p.stock??0; $('f_desc').value=p.description||'';
+ $('f_colour').value=p.colour||''; $('f_fabric').value=p.fabric||''; $('f_sizes').value=p.sizes||''; $('f_production_time').value=p.production_time||'';
  $('imgPreview').src=p.image_url||''; pendingImageUrl=null; $('imgStatus').textContent='';
  $('cancelEditBtn').classList.remove('hidden');
  window.scrollTo({top:0,behavior:'smooth'});

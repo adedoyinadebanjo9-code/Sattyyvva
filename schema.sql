@@ -56,3 +56,13 @@ create policy "Admins can upload product images"
 create policy "Admins can delete product images"
   on storage.objects for delete to authenticated
   using (bucket_id = 'product-images' and exists (select 1 from public.sattyyvvaa_admins where user_id = auth.uid()));
+
+-- ---------------------------------------------------------------------------
+-- Migration: product detail fields (fabric, sizes, colour, production time)
+-- Run this once in Supabase SQL Editor — safe to re-run, uses IF NOT EXISTS.
+-- ---------------------------------------------------------------------------
+alter table public.sattyyvvaa_products
+  add column if not exists fabric text,
+  add column if not exists colour text,
+  add column if not exists sizes text,            -- comma-separated, e.g. "XS,S,M,L,XL"
+  add column if not exists production_time text;   -- e.g. "3–7 working days"

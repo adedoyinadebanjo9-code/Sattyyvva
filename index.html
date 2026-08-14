@@ -633,6 +633,97 @@
     color:var(--ink); margin-top:6px; letter-spacing:0.02em;
   }
   .checkout-success p.note{font-size:12.5px; color:var(--ink-soft); margin-top:18px; line-height:1.65;}
+
+  /* ---------- Receipt (post-checkout + track-my-order) ---------- */
+  /* Status badge palette matches admin.html's .status-select.st-* exactly, for consistency. */
+  .status-badge{
+    display:inline-block; padding:4px 10px; border-radius:3px;
+    font-size:11px; font-weight:600; letter-spacing:0.02em;
+    border:1px solid currentColor;
+  }
+  .status-badge.st-pending_payment{color:#8a7a6c;}
+  .status-badge.st-paid{color:#33473a;}
+  .status-badge.st-shipped{color:var(--gold);}
+  .status-badge.st-delivered{color:var(--green-deep);}
+  .status-badge.st-cancelled{color:#a53b3b;}
+
+  .receipt{padding:28px 4px; text-align:left;}
+  .receipt-head{text-align:center; margin-bottom:22px;}
+  .receipt-head .track-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--ink-soft); margin-top:14px;
+  }
+  .receipt-head .track-num{
+    font-family:'Fraunces', serif; font-style:italic; font-size:28px;
+    color:var(--ink); margin-top:4px; letter-spacing:0.02em;
+  }
+  .receipt-head .receipt-date{font-size:11.5px; color:var(--ink-soft); margin-top:8px;}
+  .receipt-head .status-badge{margin-top:12px;}
+  .receipt-items{border-top:1px solid var(--line); margin-top:20px; padding-top:6px;}
+  .receipt-item{
+    display:flex; justify-content:space-between; gap:10px;
+    padding:12px 0; border-bottom:1px solid var(--line);
+    font-size:12.5px;
+  }
+  .receipt-item .ri-name{font-family:'Fraunces', serif; font-size:14px; color:var(--ink);}
+  .receipt-item .ri-meta{color:var(--ink-soft); font-size:11.5px; margin-top:2px;}
+  .receipt-item .ri-amt{color:var(--ink-soft); white-space:nowrap; text-align:right;}
+  .receipt-total-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding-top:16px; font-size:13px; color:var(--ink-soft);
+  }
+  .receipt-total-row .amt{font-family:'Fraunces', serif; font-size:19px; color:var(--ink);}
+  .receipt-note{font-size:12.5px; color:var(--ink-soft); margin-top:18px; line-height:1.65;}
+  .receipt-actions{display:flex; flex-direction:column; gap:10px; margin-top:24px;}
+
+  /* ---------- Track-my-order drawer (reuses .cart-backdrop/.cart-drawer pattern) ---------- */
+  .track-body{flex:1; overflow-y:auto; padding:18px 22px;}
+  .track-intro{font-size:12.5px; color:var(--ink-soft); line-height:1.6; margin-bottom:18px;}
+  .track-lookup{display:flex; gap:8px; margin-bottom:26px;}
+  .track-lookup input{
+    flex:1; padding:11px 12px; border:1px solid var(--line); background:#fff;
+    font:15px 'Inter', sans-serif; color:var(--ink); text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .track-lookup input:focus{outline:none; border-color:var(--ink);}
+  .track-lookup button{white-space:nowrap;}
+  .track-section-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--ink-soft); margin-bottom:12px;
+  }
+  .device-order-row{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding:14px 0; border-bottom:1px solid var(--line);
+    cursor:pointer; background:none; border-left:none; border-right:none; border-top:none;
+    width:100%; text-align:left; font:inherit;
+  }
+  .device-order-row:hover .do-track{color:var(--gold);}
+  .do-info{display:flex; flex-direction:column; gap:3px; min-width:0;}
+  .do-track{font-family:'Fraunces', serif; font-size:14px; color:var(--ink);}
+  .do-date{font-size:11px; color:var(--ink-soft);}
+  .do-right{display:flex; flex-direction:column; align-items:flex-end; gap:6px;}
+  .do-amt{font-size:12.5px; color:var(--ink-soft);}
+  .track-empty{padding:40px 0; text-align:center; font-size:13px; color:var(--ink-soft); font-style:italic;}
+  .track-lookup-state{padding:24px 4px; text-align:center;}
+  .track-lookup-state .note{font-size:12.5px; color:var(--ink-soft); line-height:1.6;}
+  .track-back{
+    background:none; border:none; padding:0;
+    font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--ink-soft); cursor:pointer; margin-bottom:16px;
+  }
+  .track-back:hover{color:var(--ink);}
+
+  /* ---------- Print (receipt only) ---------- */
+  /* Class-based, not ID-based: renderReceiptHtml is used in two places
+     (checkout view + track drawer), so an element with this class can
+     exist twice in the DOM at once. Whichever one isn't [hidden] by an
+     ancestor is the one that actually renders in print — display:none
+     from [hidden] isn't overridden by visibility:visible here. */
+  @media print{
+    body *{visibility:hidden;}
+    .receipt, .receipt *{visibility:visible;}
+    .receipt{position:absolute; top:0; left:0; width:100%; padding:20px;}
+    .receipt-actions{display:none;}
+  }
 </style>
 </head>
 <body>
@@ -771,6 +862,16 @@
     </div>
   </div>
 
+  <div class="cart-backdrop" id="trackBackdrop" hidden>
+    <div class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="trackHeading">
+      <div class="cart-head">
+        <h3 id="trackHeading">Track your order</h3>
+        <button class="cart-close" id="trackClose" aria-label="Close">×</button>
+      </div>
+      <div class="track-body" id="trackBody"></div>
+    </div>
+  </div>
+
   <footer>
     <div class="footer-grid">
       <div>
@@ -788,6 +889,7 @@
         <h4>Contact</h4>
         <a href="https://wa.me/2348116412960?text=Hi%20TTYYVVA%2C%20I%27d%20like%20to%20know%20more%20about%20your%20pieces.">WhatsApp</a>
         <a href="https://instagram.com/">Instagram</a>
+        <a href="#" id="trackOrderLink">Track your order</a>
         <span>Lagos, Nigeria</span>
       </div>
     </div>
@@ -1186,6 +1288,7 @@ function renderCartDrawer() {
 }
 
 function openCart() {
+  closeTrackDrawer(); // avoid both drawers open at once (overlapping backdrops, duplicate receipt IDs)
   showCartItemsView();
   document.getElementById('cartBackdrop').hidden = false;
   document.body.style.overflow = 'hidden';
@@ -1273,6 +1376,229 @@ function validateCheckoutForm() {
   return { valid: !!name && !!phone && !!address && emailValid, name, phone, email, address };
 }
 
+// ---- Device-local order memory + receipt rendering ----
+// Convenience only, not security: anyone with access to this browser/device
+// can see this list, same as browsing history. get_order_by_tracking already
+// excludes contact info, so nothing sensitive is exposed here either.
+const ORDERS_KEY = 'sattyyvvaa_orders_v1';
+const STATUS_LABEL = {
+  pending_payment: 'Pending payment', paid: 'Paid', shipped: 'Shipped',
+  delivered: 'Delivered', cancelled: 'Cancelled'
+};
+
+function loadDeviceOrders() {
+  try {
+    const raw = localStorage.getItem(ORDERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; } // storage unavailable (e.g. private browsing) — device list stays empty, manual lookup still works
+}
+
+function saveDeviceOrders(orders) {
+  try { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); } catch (e) { /* storage unavailable, ignore */ }
+}
+
+// Saved at order creation (not just on 'paid'), so a customer can find and
+// retry a pending_payment order from their own device even if payment fails
+// or the popup is closed.
+function saveOrderToDevice(orderRecord) {
+  const orders = loadDeviceOrders();
+  const existingIdx = orders.findIndex(o => o.trackingNumber === orderRecord.trackingNumber);
+  if (existingIdx >= 0) orders[existingIdx] = orderRecord;
+  else orders.unshift(orderRecord);
+  saveDeviceOrders(orders);
+}
+
+function updateDeviceOrderStatus(trackingNumber, newStatus) {
+  const orders = loadDeviceOrders();
+  const idx = orders.findIndex(o => o.trackingNumber === trackingNumber);
+  if (idx >= 0) { orders[idx].status = newStatus; saveDeviceOrders(orders); }
+}
+
+function statusBadgeHtml(status) {
+  const label = STATUS_LABEL[status] || status;
+  const cls = STATUS_LABEL[status] ? status : 'pending_payment';
+  return `<span class="status-badge st-${escapeHtml(cls)}">${escapeHtml(label)}</span>`;
+}
+
+function fmtOrderDate(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return iso; }
+}
+
+function fmtNaira(n) {
+  return '₦' + Number(n).toLocaleString('en-NG');
+}
+
+// Shared receipt markup — used by the post-checkout confirmation screen AND
+// the track-my-order drawer, so both stay visually identical.
+function renderReceiptHtml(orderRecord, opts) {
+  opts = opts || {};
+  const itemsHtml = (orderRecord.items || []).map(item => `
+    <div class="receipt-item">
+      <div>
+        <div class="ri-name">${escapeHtml(item.name)}</div>
+        <div class="ri-meta">${item.size ? 'Size ' + escapeHtml(item.size) + ' · ' : ''}Qty ${escapeHtml(String(item.qty))} · ${fmtNaira(item.unitPrice)} each</div>
+      </div>
+      <div class="ri-amt">${fmtNaira(item.subtotal)}</div>
+    </div>`).join('');
+
+  return `
+    <div class="receipt" id="printReceiptArea">
+      <div class="receipt-head">
+        <span class="eyebrow" style="color:var(--green)">${escapeHtml(opts.eyebrow || 'Order receipt')}</span>
+        <div class="track-label">Tracking number</div>
+        <div class="track-num">${escapeHtml(orderRecord.trackingNumber)}</div>
+        <div class="receipt-date">${escapeHtml(fmtOrderDate(orderRecord.createdAt))}</div>
+        <div id="receiptStatusBadge">${statusBadgeHtml(orderRecord.status)}</div>
+      </div>
+      <div class="receipt-items">${itemsHtml}</div>
+      <div class="receipt-total-row"><span>Total</span><span class="amt">${fmtNaira(orderRecord.amountTotal)}</span></div>
+      <p class="receipt-note" id="receiptNote">${escapeHtml(opts.note || '')}</p>
+      <div class="receipt-actions">
+        ${opts.extraButtonsHtml || ''}
+        <button type="button" class="btn modal-addcart cart-checkout-btn" id="receiptPrintBtn">Print / Save as PDF</button>
+        <button type="button" class="btn modal-addcart cart-checkout-btn" id="receiptDoneBtn">Done</button>
+      </div>
+    </div>`;
+}
+
+function wireReceiptButtons(onDone) {
+  const printBtn = document.getElementById('receiptPrintBtn');
+  if (printBtn) printBtn.addEventListener('click', () => window.print());
+  const doneBtn = document.getElementById('receiptDoneBtn');
+  if (doneBtn) doneBtn.addEventListener('click', onDone);
+}
+
+/* ---------------- Track-my-order drawer ---------------- */
+// Two lookup paths: (1) instant, local — orders placed from this device,
+// read from the same ORDERS_KEY localStorage list used by checkout;
+// (2) manual tracking-number entry — for a different device or cleared
+// storage, via the get_order_by_tracking RPC (SECURITY DEFINER, excludes
+// contact info by design). Both render through the same renderReceiptHtml
+// used at checkout, for visual consistency.
+
+function openTrackDrawer() {
+  renderTrackDrawerHome();
+  document.getElementById('trackBackdrop').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeTrackDrawer() {
+  document.getElementById('trackBackdrop').hidden = true;
+  document.body.style.overflow = '';
+}
+
+function renderTrackDrawerHome() {
+  const body = document.getElementById('trackBody');
+  const orders = loadDeviceOrders();
+  const listHtml = orders.length
+    ? `<div class="track-section-label">Orders placed from this device</div>` +
+      orders.map(o => `
+        <button type="button" class="device-order-row" data-tracking="${escapeHtml(o.trackingNumber)}">
+          <div class="do-info">
+            <div class="do-track">${escapeHtml(o.trackingNumber)}</div>
+            <div class="do-date">${escapeHtml(fmtOrderDate(o.createdAt))}</div>
+          </div>
+          <div class="do-right">
+            ${statusBadgeHtml(o.status)}
+            <div class="do-amt">${fmtNaira(o.amountTotal)}</div>
+          </div>
+        </button>`).join('')
+    : `<div class="track-empty">No orders yet from this browser. Enter a tracking number above to look one up.</div>`;
+
+  body.innerHTML = `
+    <p class="track-intro">Enter your tracking number to check an order, or pick one below if you ordered from this device.</p>
+    <div class="track-lookup">
+      <input type="text" id="trackInput" placeholder="STV-XXXXXX" maxlength="10" autocomplete="off" spellcheck="false">
+      <button type="button" class="btn btn-solid" id="trackLookupBtn">Track</button>
+    </div>
+    ${listHtml}`;
+
+  document.getElementById('trackLookupBtn').addEventListener('click', handleTrackLookup);
+  const input = document.getElementById('trackInput');
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTrackLookup(); });
+  input.addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase(); });
+  body.querySelectorAll('.device-order-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const tn = row.getAttribute('data-tracking');
+      const order = orders.find(o => o.trackingNumber === tn);
+      if (order) showTrackReceipt(order);
+    });
+  });
+}
+
+async function handleTrackLookup() {
+  const input = document.getElementById('trackInput');
+  const raw = input ? input.value.trim() : '';
+  if (!raw) return;
+
+  const body = document.getElementById('trackBody');
+  body.innerHTML = `
+    <button type="button" class="track-back" id="trackBackBtn">← Back</button>
+    <div class="track-lookup-state"><p class="note">Looking that up…</p></div>`;
+  document.getElementById('trackBackBtn').addEventListener('click', renderTrackDrawerHome);
+
+  try {
+    // .single() throws/errors on zero matching rows — that's our "not found" signal.
+    const { data, error } = await sb.rpc('get_order_by_tracking', { p_tracking_number: raw }).single();
+    if (error || !data) {
+      renderTrackLookupMessage("We couldn't find an order with that tracking number. Double check it and try again — it should look like STV-XXXXXX.");
+      return;
+    }
+    showTrackReceipt(adaptTrackingResult(data));
+  } catch (err) {
+    console.error('Tracking lookup failed:', err);
+    renderTrackLookupMessage("Something went wrong checking that — please check your connection and try again.");
+  }
+}
+
+function renderTrackLookupMessage(text) {
+  const body = document.getElementById('trackBody');
+  body.innerHTML = `
+    <button type="button" class="track-back" id="trackBackBtn">← Back</button>
+    <div class="track-lookup-state"><p class="note">${escapeHtml(text)}</p></div>`;
+  document.getElementById('trackBackBtn').addEventListener('click', renderTrackDrawerHome);
+}
+
+// Adapts get_order_by_tracking's return shape (tracking_number, status,
+// amount_total, currency, created_at, items: [{product_name, size,
+// quantity, unit_price}]) to the {trackingNumber, createdAt, items:
+// [{name, size, qty, unitPrice, subtotal}], amountTotal, status} shape
+// renderReceiptHtml expects. NOTE: this column/key mapping is based on the
+// function's original SQL definition, not a fresh live query against it
+// this session — flagging as inherited-but-unverified-here.
+function adaptTrackingResult(data) {
+  const items = (data.items || []).map(it => ({
+    name: it.product_name, size: it.size, qty: it.quantity,
+    unitPrice: it.unit_price, subtotal: (Number(it.unit_price) || 0) * (Number(it.quantity) || 0)
+  }));
+  return {
+    trackingNumber: data.tracking_number,
+    createdAt: data.created_at,
+    items: items,
+    amountTotal: data.amount_total,
+    status: data.status
+  };
+}
+
+function showTrackReceipt(orderRecord) {
+  const body = document.getElementById('trackBody');
+  const noteByStatus = {
+    pending_payment: 'Payment is still pending on this order. If you started paying, it can take a minute to confirm.',
+    paid: "We'll update this as your order moves along. Message us on WhatsApp any time.",
+    shipped: "Your order is on its way. Message us on WhatsApp if you need anything.",
+    delivered: 'Delivered — thank you for shopping with us!',
+    cancelled: 'This order was cancelled.'
+  };
+  body.innerHTML = `<button type="button" class="track-back" id="trackBackBtn">← Back</button>` +
+    renderReceiptHtml(orderRecord, {
+      eyebrow: 'Order receipt',
+      note: noteByStatus[orderRecord.status] || ''
+    });
+  document.getElementById('trackBackBtn').addEventListener('click', renderTrackDrawerHome);
+  wireReceiptButtons(renderTrackDrawerHome);
+}
+
 async function submitCheckout(e) {
   e.preventDefault();
   const errEl = document.getElementById('checkoutSubmitErr');
@@ -1297,6 +1623,11 @@ async function submitCheckout(e) {
       quantity: line.qty,
       subtotal: line.price * line.qty
     }));
+    // Same line items, reshaped for the receipt renderer (name/qty/unitPrice keys).
+    const receiptItems = cart.map(line => ({
+      name: line.name, size: line.size, qty: line.qty,
+      unitPrice: line.price, subtotal: line.price * line.qty
+    }));
 
     // Single atomic Postgres function (create_order) — inserts the order
     // and its line items in one transaction, so a mid-way failure can't
@@ -1314,13 +1645,25 @@ async function submitCheckout(e) {
       .single();
     if (orderErr) throw orderErr;
 
+    // Saved to this device immediately — before payment resolves — so a
+    // customer can find and retry a pending_payment order even if the
+    // Paystack popup fails or is closed without paying.
+    const orderRecord = {
+      trackingNumber: order.tracking_number,
+      createdAt: new Date().toISOString(),
+      items: receiptItems,
+      amountTotal: amountTotal,
+      status: 'pending_payment'
+    };
+    saveOrderToDevice(orderRecord);
+
     // Order is saved (status: pending_payment) — cart's job is done regardless
     // of what happens with the payment popup next, so clear it now.
     cart = [];
     saveCart();
     renderCartBadge();
 
-    launchPaystackPayment(order.tracking_number, amountTotal, email);
+    launchPaystackPayment(orderRecord, email);
   } catch (err) {
     errEl.textContent = "Couldn't place your order — " + (err.message || 'please check your connection and try again.');
     errEl.classList.add('show');
@@ -1336,80 +1679,74 @@ async function submitCheckout(e) {
 // server-side, via the verify-payment Edge Function reacting to Paystack's
 // webhook. This flow only ever shows honest in-progress/retry states.
 
-function launchPaystackPayment(trackingNumber, amountTotal, email) {
+function launchPaystackPayment(orderRecord, email) {
   const handler = PaystackPop.setup({
     key: PAYSTACK_PUBLIC_KEY,
     email: email,
-    amount: Math.round(amountTotal * 100), // Paystack expects kobo
+    amount: Math.round(orderRecord.amountTotal * 100), // Paystack expects kobo
     currency: 'NGN',
-    ref: trackingNumber, // matches sattyyvvaa_orders.tracking_number — verify-payment looks orders up by this
+    ref: orderRecord.trackingNumber, // matches sattyyvvaa_orders.tracking_number — verify-payment looks orders up by this
     callback: function (response) {
       // This only means the popup itself finished — NOT that payment is
       // verified. Real confirmation is server-side (webhook). Show an
       // honest "submitted" state and poll for the real status.
-      showPaymentSubmitted(trackingNumber);
+      showPaymentSubmitted(orderRecord, email);
     },
     onClose: function () {
       // Customer closed the popup without completing payment. The order
       // is untouched in the DB (still pending_payment) — nothing lost.
-      showPaymentRetry(trackingNumber, amountTotal, email);
+      showPaymentRetry(orderRecord, email);
     }
   });
   handler.openIframe();
 }
 
-function showPaymentSubmitted(trackingNumber) {
+function showPaymentSubmitted(orderRecord, email) {
   const view = document.getElementById('checkoutView');
-  view.innerHTML = `
-    <div class="checkout-success">
-      <span class="eyebrow" style="color:var(--green)">Payment submitted</span>
-      <div class="track-label">Your tracking number</div>
-      <div class="track-num">${escapeHtml(trackingNumber)}</div>
-      <p class="note" id="paymentStatusNote">Confirming your payment — this usually takes just a few seconds…</p>
-      <button type="button" class="btn modal-addcart cart-checkout-btn" id="checkoutDoneBtn" style="margin-top:24px">Done</button>
-    </div>`;
-  document.getElementById('checkoutDoneBtn').addEventListener('click', closeCart);
-  pollPaymentStatus(trackingNumber, 0);
+  view.innerHTML = renderReceiptHtml(orderRecord, {
+    eyebrow: 'Payment submitted',
+    note: 'Confirming your payment — this usually takes just a few seconds…'
+  });
+  wireReceiptButtons(closeCart);
+  pollPaymentStatus(orderRecord, 0);
 }
 
-async function pollPaymentStatus(trackingNumber, attempt) {
+async function pollPaymentStatus(orderRecord, attempt) {
   const MAX_ATTEMPTS = 10; // ~30s total at 3s apart — a UI courtesy only,
                             // the webhook keeps working after this stops polling
   if (attempt >= MAX_ATTEMPTS) {
-    const note = document.getElementById('paymentStatusNote');
+    const note = document.getElementById('receiptNote');
     if (note) {
       note.textContent = "Still confirming — this can occasionally take a bit longer. Your order and tracking number are saved either way; check back shortly or message us on WhatsApp if you don't hear from us.";
     }
     return;
   }
   try {
-    const { data, error } = await sb.rpc('get_order_by_tracking', { p_tracking_number: trackingNumber }).single();
+    const { data, error } = await sb.rpc('get_order_by_tracking', { p_tracking_number: orderRecord.trackingNumber }).single();
     if (!error && data && data.status === 'paid') {
-      const note = document.getElementById('paymentStatusNote');
-      const eyebrow = document.querySelector('#checkoutView .eyebrow');
-      if (eyebrow) eyebrow.textContent = 'Payment confirmed';
+      orderRecord.status = 'paid';
+      updateDeviceOrderStatus(orderRecord.trackingNumber, 'paid');
+      const badge = document.getElementById('receiptStatusBadge');
+      const note = document.getElementById('receiptNote');
+      if (badge) badge.innerHTML = statusBadgeHtml('paid');
       if (note) note.textContent = "Payment confirmed — thank you! We'll be in touch on WhatsApp to arrange production and delivery.";
       return; // stop polling — done
     }
   } catch (err) {
     console.error('Payment status check failed:', err);
   }
-  setTimeout(() => pollPaymentStatus(trackingNumber, attempt + 1), 3000);
+  setTimeout(() => pollPaymentStatus(orderRecord, attempt + 1), 3000);
 }
 
-function showPaymentRetry(trackingNumber, amountTotal, email) {
+function showPaymentRetry(orderRecord, email) {
   const view = document.getElementById('checkoutView');
-  view.innerHTML = `
-    <div class="checkout-success">
-      <span class="eyebrow" style="color:var(--gold)">Payment not completed</span>
-      <div class="track-label">Your tracking number</div>
-      <div class="track-num">${escapeHtml(trackingNumber)}</div>
-      <p class="note">Your order is saved — nothing's lost. You can try paying again now, or come back to it later using your tracking number.</p>
-      <button type="button" class="btn btn-solid cart-checkout-btn" id="retryPaymentBtn" style="margin-top:24px">Pay now</button>
-      <button type="button" class="btn modal-addcart cart-checkout-btn" id="checkoutDoneBtn" style="margin-top:10px">Done for now</button>
-    </div>`;
-  document.getElementById('retryPaymentBtn').addEventListener('click', () => launchPaystackPayment(trackingNumber, amountTotal, email));
-  document.getElementById('checkoutDoneBtn').addEventListener('click', closeCart);
+  view.innerHTML = renderReceiptHtml(orderRecord, {
+    eyebrow: 'Payment not completed',
+    note: "Your order is saved — nothing's lost. You can try paying again now, or come back to it later using your tracking number.",
+    extraButtonsHtml: `<button type="button" class="btn btn-solid cart-checkout-btn" id="retryPaymentBtn">Pay now</button>`
+  });
+  document.getElementById('retryPaymentBtn').addEventListener('click', () => launchPaystackPayment(orderRecord, email));
+  wireReceiptButtons(closeCart);
 }
 document.getElementById('cartBtn').addEventListener('click', openCart);
 document.getElementById('cartClose').addEventListener('click', closeCart);
@@ -1420,6 +1757,18 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('cartBackdrop').hidden) closeCart();
 });
 document.getElementById('cartCheckoutBtn').addEventListener('click', showCheckoutView);
+
+document.getElementById('trackOrderLink').addEventListener('click', (e) => {
+  e.preventDefault();
+  openTrackDrawer();
+});
+document.getElementById('trackClose').addEventListener('click', closeTrackDrawer);
+document.getElementById('trackBackdrop').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('trackBackdrop')) closeTrackDrawer();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('trackBackdrop').hidden) closeTrackDrawer();
+});
 
 loadCart();
 renderCartBadge();

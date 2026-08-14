@@ -1479,6 +1479,7 @@ function wireReceiptButtons(onDone) {
 // used at checkout, for visual consistency.
 
 function openTrackDrawer() {
+  closeCart(); // avoid both drawers open at once (overlapping backdrops, duplicate receipt IDs)
   renderTrackDrawerHome();
   document.getElementById('trackBackdrop').hidden = false;
   document.body.style.overflow = 'hidden';
@@ -1521,15 +1522,18 @@ function renderTrackDrawerHome() {
   body.querySelectorAll('.device-order-row').forEach(row => {
     row.addEventListener('click', () => {
       const tn = row.getAttribute('data-tracking');
-      const order = orders.find(o => o.trackingNumber === tn);
-      if (order) showTrackReceipt(order);
+      // Always re-query the DB rather than trusting the cached localStorage
+      // status — the cache is only ever refreshed during the ~30s poll right
+      // after checkout, so a device-list tap later could otherwise show a
+      // stale "pending" for an order that's actually been paid since.
+      handleTrackLookup(tn);
     });
   });
 }
 
-async function handleTrackLookup() {
+async function handleTrackLookup(presetValue) {
   const input = document.getElementById('trackInput');
-  const raw = input ? input.value.trim() : '';
+  const raw = presetValue || (input ? input.value.trim() : '');
   if (!raw) return;
 
   const body = document.getElementById('trackBody');

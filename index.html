@@ -582,6 +582,57 @@
   .cart-checkout-btn{width:100%; justify-content:center;}
   .cart-note{font-size:11px; color:var(--ink-soft); line-height:1.55;}
   .cart-note a{text-decoration:underline;}
+
+  /* ---------- Checkout form (inline in cart drawer) ---------- */
+  .checkout-view{flex:1; overflow-y:auto; padding:18px 22px;}
+  .checkout-view[hidden]{display:none;}
+  .checkout-back{
+    background:none; border:none; padding:0;
+    font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--ink-soft); cursor:pointer; margin-bottom:16px;
+  }
+  .checkout-back:hover{color:var(--ink);}
+  .checkout-summary{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:13px; color:var(--ink-soft);
+    padding-bottom:14px; margin-bottom:16px;
+    border-bottom:1px solid var(--line);
+  }
+  .checkout-summary .amt{font-family:'Fraunces', serif; font-size:18px; color:var(--ink);}
+  .checkout-field{margin-bottom:14px;}
+  .checkout-field label{
+    display:block; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--ink-soft); margin-bottom:6px;
+  }
+  .checkout-field input, .checkout-field textarea{
+    width:100%; padding:11px 12px;
+    border:1px solid var(--line); background:#fff;
+    font:16px 'Inter', sans-serif; color:var(--ink);
+  }
+  @media (max-width:420px){
+    .checkout-view{padding:16px 16px;}
+  }
+  .checkout-field textarea{min-height:64px; resize:vertical;}
+  .checkout-field input:focus, .checkout-field textarea:focus{outline:none; border-color:var(--ink);}
+  .checkout-field .err-msg{font-size:10.5px; color:#a53b3b; margin-top:4px; display:none;}
+  .checkout-field.has-error input, .checkout-field.has-error textarea{border-color:#a53b3b;}
+  .checkout-field.has-error .err-msg{display:block;}
+  .checkout-submit-err{
+    font-size:12px; color:#a53b3b; margin:2px 0 14px;
+    padding:10px 12px; border:1px solid #a53b3b;
+    background:rgba(165,59,59,0.06); display:none;
+  }
+  .checkout-submit-err.show{display:block;}
+  .checkout-success{padding:36px 4px; text-align:center;}
+  .checkout-success .track-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--ink-soft); margin-top:20px;
+  }
+  .checkout-success .track-num{
+    font-family:'Fraunces', serif; font-style:italic; font-size:30px;
+    color:var(--ink); margin-top:6px; letter-spacing:0.02em;
+  }
+  .checkout-success p.note{font-size:12.5px; color:var(--ink-soft); margin-top:18px; line-height:1.65;}
 </style>
 </head>
 <body>
@@ -711,6 +762,7 @@
         <button class="cart-close" id="cartClose" aria-label="Close cart">×</button>
       </div>
       <div class="cart-body" id="cartBody"></div>
+      <div class="checkout-view" id="checkoutView" hidden></div>
       <div class="cart-foot" id="cartFoot" hidden>
         <div class="cart-total-row"><span>Subtotal</span><span class="amt" id="cartSubtotal"></span></div>
         <button class="btn btn-solid cart-checkout-btn" id="cartCheckoutBtn" type="button">Checkout</button>
@@ -1129,13 +1181,158 @@ function renderCartDrawer() {
 }
 
 function openCart() {
-  renderCartDrawer();
+  showCartItemsView();
   document.getElementById('cartBackdrop').hidden = false;
   document.body.style.overflow = 'hidden';
 }
 function closeCart() {
   document.getElementById('cartBackdrop').hidden = true;
   document.body.style.overflow = '';
+}
+
+/* ---------------- Checkout (inline in cart drawer) ---------------- */
+// Unconfirmed assumption, flagged to Adedoyin: reopening the cart after
+// leaving mid-checkout resets to the items view rather than resuming the
+// form. Cart contents themselves are untouched either way (still in
+// localStorage) — only the checkout form's typed fields would be lost.
+
+function showCartItemsView() {
+  document.getElementById('checkoutView').hidden = true;
+  document.getElementById('checkoutView').innerHTML = '';
+  document.getElementById('cartBody').hidden = false;
+  renderCartDrawer();
+}
+
+function checkoutFormHtml() {
+  return `
+    <button type="button" class="checkout-back" id="checkoutBack">&larr; Back to cart</button>
+    <div class="checkout-summary">
+      <span>${cartCount()} item${cartCount() === 1 ? '' : 's'} &middot; Subtotal</span>
+      <span class="amt">${NGN(cartSubtotal())}</span>
+    </div>
+    <form id="checkoutForm" novalidate>
+      <div class="checkout-field" data-field="name">
+        <label for="co_name">Full name</label>
+        <input id="co_name" type="text" autocomplete="name">
+        <div class="err-msg">Enter your full name.</div>
+      </div>
+      <div class="checkout-field" data-field="phone">
+        <label for="co_phone">Phone number</label>
+        <input id="co_phone" type="tel" autocomplete="tel" placeholder="e.g. 0811 641 2960">
+        <div class="err-msg">Enter a phone number we can reach you on.</div>
+      </div>
+      <div class="checkout-field" data-field="email">
+        <label for="co_email">Email (optional)</label>
+        <input id="co_email" type="email" autocomplete="email">
+        <div class="err-msg">That doesn't look like a valid email.</div>
+      </div>
+      <div class="checkout-field" data-field="address">
+        <label for="co_address">Shipping address</label>
+        <textarea id="co_address" autocomplete="street-address" placeholder="Street, area, city, state"></textarea>
+        <div class="err-msg">Enter the address we should ship to.</div>
+      </div>
+      <p class="checkout-submit-err" id="checkoutSubmitErr"></p>
+      <button type="submit" class="btn btn-solid cart-checkout-btn" id="checkoutSubmitBtn">Place order</button>
+      <p class="cart-note">You won't be charged yet — this saves your order and gets you a tracking number. We'll follow up on WhatsApp to arrange payment.</p>
+    </form>`;
+}
+
+function showCheckoutView() {
+  if (!cart.length) return; // safety no-op — button isn't reachable with an empty cart anyway
+  document.getElementById('cartBody').hidden = true;
+  document.getElementById('cartFoot').hidden = true;
+  const view = document.getElementById('checkoutView');
+  view.hidden = false;
+  view.innerHTML = checkoutFormHtml();
+  document.getElementById('checkoutBack').addEventListener('click', showCartItemsView);
+  document.getElementById('checkoutForm').addEventListener('submit', submitCheckout);
+}
+
+function setFieldError(field, hasError) {
+  const el = document.querySelector(`.checkout-field[data-field="${field}"]`);
+  if (el) el.classList.toggle('has-error', !!hasError);
+}
+
+function validateCheckoutForm() {
+  const name = document.getElementById('co_name').value.trim();
+  const phone = document.getElementById('co_phone').value.trim();
+  const email = document.getElementById('co_email').value.trim();
+  const address = document.getElementById('co_address').value.trim();
+  const emailInvalid = !!email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  setFieldError('name', !name);
+  setFieldError('phone', !phone);
+  setFieldError('address', !address);
+  setFieldError('email', emailInvalid);
+
+  return { valid: !!name && !!phone && !!address && !emailInvalid, name, phone, email, address };
+}
+
+async function submitCheckout(e) {
+  e.preventDefault();
+  const errEl = document.getElementById('checkoutSubmitErr');
+  errEl.classList.remove('show');
+  errEl.textContent = '';
+
+  const { valid, name, phone, email, address } = validateCheckoutForm();
+  if (!valid) return;
+
+  const btn = document.getElementById('checkoutSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Placing order…';
+
+  const amountTotal = cartSubtotal();
+
+  try {
+    const itemsPayload = cart.map(line => ({
+      product_id: line.id,
+      product_name: line.name,
+      size: line.size,
+      unit_price: line.price,
+      quantity: line.qty,
+      subtotal: line.price * line.qty
+    }));
+
+    // Single atomic Postgres function (create_order) — inserts the order
+    // and its line items in one transaction, so a mid-way failure can't
+    // leave an order with no items.
+    const { data: order, error: orderErr } = await sb
+      .rpc('create_order', {
+        p_customer_name: name,
+        p_customer_phone: phone,
+        p_customer_email: email || null,
+        p_shipping_address: address,
+        p_amount_total: amountTotal,
+        p_currency: 'NGN',
+        p_items: itemsPayload
+      })
+      .single();
+    if (orderErr) throw orderErr;
+
+    showCheckoutSuccess(order.tracking_number);
+    cart = [];
+    saveCart();
+    renderCartBadge();
+  } catch (err) {
+    errEl.textContent = "Couldn't place your order — " + (err.message || 'please check your connection and try again.');
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Place order';
+    console.error('Checkout failed:', err);
+  }
+}
+
+function showCheckoutSuccess(trackingNumber) {
+  const view = document.getElementById('checkoutView');
+  view.innerHTML = `
+    <div class="checkout-success">
+      <span class="eyebrow" style="color:var(--green)">Order placed</span>
+      <div class="track-label">Your tracking number</div>
+      <div class="track-num">${escapeHtml(trackingNumber)}</div>
+      <p class="note">Save this number to check your order status later. We'll reach out on WhatsApp or by phone shortly to confirm details and arrange payment.</p>
+      <button type="button" class="btn btn-solid cart-checkout-btn" id="checkoutDoneBtn" style="margin-top:24px">Done</button>
+    </div>`;
+  document.getElementById('checkoutDoneBtn').addEventListener('click', closeCart);
 }
 document.getElementById('cartBtn').addEventListener('click', openCart);
 document.getElementById('cartClose').addEventListener('click', closeCart);
@@ -1145,12 +1342,7 @@ document.getElementById('cartBackdrop').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('cartBackdrop').hidden) closeCart();
 });
-document.getElementById('cartCheckoutBtn').addEventListener('click', () => {
-  // Placeholder — the checkout form + Paystack flow is the next build step
-  // and doesn't exist yet. Cart contents are already saved to localStorage,
-  // so nothing is lost between now and when checkout ships.
-  alert('Checkout is coming very soon — your cart is saved. For now, message us on WhatsApp to place this order.');
-});
+document.getElementById('cartCheckoutBtn').addEventListener('click', showCheckoutView);
 
 loadCart();
 renderCartBadge();

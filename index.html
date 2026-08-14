@@ -456,6 +456,132 @@
     padding-top:28px; font-size:11px; color:#8fa495; letter-spacing:0.03em;
     flex-wrap:wrap; gap:10px;
   }
+
+  /* ---------- Cart button (topbar) ---------- */
+  .cart-btn{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    background:none;
+    border:none;
+    color:inherit;
+    font:inherit;
+    font-size:12px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+    padding:0;
+  }
+  .cart-badge{
+    position:absolute;
+    top:-9px; right:-14px;
+    background:var(--gold);
+    color:#1a1610;
+    font-size:10px;
+    font-weight:700;
+    min-width:16px;
+    height:16px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0 3px;
+    line-height:1;
+  }
+  .cart-badge.hidden{display:none;}
+
+  /* ---------- Card / modal "Add to Cart" controls ---------- */
+  .card-info .addcart{
+    margin-top:8px;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--ink);
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
+    text-align:left;
+  }
+  .card-info .addcart:disabled{opacity:.4; cursor:not-allowed;}
+
+  .modal-addcart{
+    margin-top:10px;
+    justify-content:center;
+    background:transparent;
+    border:1px solid var(--ink);
+    color:var(--ink);
+  }
+  .modal-addcart:hover:not(:disabled){background:var(--ink); color:#f3e9de;}
+  .modal-addcart:disabled{opacity:.45; cursor:not-allowed; border-color:var(--line); color:var(--ink-soft);}
+  .modal-cart-note{font-size:11.5px; color:var(--green); margin-top:8px;}
+
+  /* ---------- Cart drawer ---------- */
+  .cart-backdrop{
+    position:fixed; inset:0; z-index:110;
+    background:rgba(20,17,13,0.55);
+    display:flex; justify-content:flex-end;
+  }
+  .cart-backdrop[hidden]{display:none;}
+  .cart-drawer{
+    width:min(420px, 100%);
+    height:100%;
+    background:var(--card);
+    display:flex;
+    flex-direction:column;
+    border-left:1px solid var(--line);
+  }
+  .cart-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 22px;
+    border-bottom:1px solid var(--line);
+  }
+  .cart-head h3{font-family:'Fraunces', serif; font-weight:400; font-size:20px;}
+  .cart-close{
+    width:32px; height:32px;
+    border:1px solid rgba(33,23,18,0.2);
+    background:var(--card);
+    color:var(--ink);
+    font-size:18px; line-height:1;
+    cursor:pointer;
+  }
+  .cart-body{flex:1; overflow-y:auto; padding:6px 22px;}
+  .cart-empty{padding:50px 0; text-align:center; font-size:13px; color:var(--ink-soft); font-style:italic;}
+  .cart-row{display:flex; gap:12px; padding:16px 0; border-bottom:1px solid var(--line);}
+  .cart-row img{width:64px; height:80px; object-fit:cover; background:#eee; flex-shrink:0;}
+  .ci-info{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;}
+  .ci-name{font-family:'Fraunces', serif; font-size:14.5px; color:var(--ink);}
+  .ci-meta{font-size:11.5px; color:var(--ink-soft);}
+  .ci-price{font-size:12px; color:var(--ink-soft);}
+  .qty-stepper{display:flex; align-items:center; gap:10px; margin-top:6px;}
+  .qty-stepper button{
+    width:24px; height:24px;
+    border:1px solid var(--line);
+    background:transparent;
+    font-size:14px;
+    line-height:1;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .qty-stepper button:disabled{opacity:.35; cursor:not-allowed;}
+  .qty-stepper span{font-size:12.5px; min-width:14px; text-align:center;}
+  .cart-stock-note{font-size:10.5px; color:#a53b3b; margin-top:3px;}
+  .cart-remove{
+    font-size:11px; color:#a53b3b; text-decoration:underline;
+    cursor:pointer; margin-top:6px; align-self:flex-start;
+    background:none; border:none; padding:0;
+  }
+  .cart-foot{border-top:1px solid var(--line); padding:18px 22px; display:flex; flex-direction:column; gap:12px;}
+  .cart-foot[hidden]{display:none;}
+  .cart-total-row{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--ink-soft);}
+  .cart-total-row .amt{font-family:'Fraunces', serif; font-size:19px; color:var(--ink);}
+  .cart-checkout-btn{width:100%; justify-content:center;}
+  .cart-note{font-size:11px; color:var(--ink-soft); line-height:1.55;}
+  .cart-note a{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -467,6 +593,9 @@
       <a href="#tops">Tops</a>
       <a href="#bottoms">Bottoms</a>
       <a href="#twopieces">Two-Pieces</a>
+      <button class="cart-btn" id="cartBtn" type="button" aria-label="Open cart">
+        Cart<span class="cart-badge hidden" id="cartBadge">0</span>
+      </button>
     </nav>
   </header>
 
@@ -567,7 +696,25 @@
         <div class="modal-meta" id="modalMeta"></div>
         <div class="modal-sizes" id="modalSizes"></div>
         <a href="#" class="btn btn-solid modal-cta" id="modalCta" target="_blank" rel="noopener">Order on WhatsApp</a>
+        <button type="button" class="btn modal-addcart" id="modalAddCart" disabled>Select a size to add to cart</button>
+        <p class="modal-cart-note" id="modalCartNote" style="display:none"></p>
         <div class="accordion" id="modalAccordion"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart drawer -->
+  <div class="cart-backdrop" id="cartBackdrop" hidden>
+    <div class="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cartHeading">
+      <div class="cart-head">
+        <h3 id="cartHeading">Your cart</h3>
+        <button class="cart-close" id="cartClose" aria-label="Close cart">×</button>
+      </div>
+      <div class="cart-body" id="cartBody"></div>
+      <div class="cart-foot" id="cartFoot" hidden>
+        <div class="cart-total-row"><span>Subtotal</span><span class="amt" id="cartSubtotal"></span></div>
+        <button class="btn btn-solid cart-checkout-btn" id="cartCheckoutBtn" type="button">Checkout</button>
+        <p class="cart-note">Shipping is calculated at checkout. Have a question first? <a href="https://wa.me/2348116412960?text=Hi%20SATTYYVVAA%2C%20I%20have%20a%20question%20about%20an%20order." target="_blank" rel="noopener">Message us on WhatsApp</a>.</p>
       </div>
     </div>
   </div>
@@ -643,11 +790,28 @@ function whatsappLink(product, size) {
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
 
+function isSoldOut(product) {
+  return product.stock !== null && product.stock !== undefined && Number(product.stock) <= 0;
+}
+function hasNoPrice(product) {
+  return product.price === null || product.price === undefined || product.price === '';
+}
+
+function addToCartControlHtml(product) {
+  if (hasNoPrice(product)) {
+    return `<button type="button" class="addcart" disabled title="Price on request — contact us on WhatsApp">Add to Cart</button>`;
+  }
+  if (isSoldOut(product)) {
+    return `<button type="button" class="addcart" disabled title="Currently out of stock">Add to Cart</button>`;
+  }
+  return `<button type="button" class="addcart" data-cart-add="${product.id}">Add to Cart</button>`;
+}
+
 function cardHtml(product, i) {
   const media = product.image_url
     ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}">`
     : `<div class="ph ${PH_CLASSES[i % PH_CLASSES.length]}"></div>`;
-  const soldOut = product.stock !== null && product.stock !== undefined && Number(product.stock) <= 0;
+  const soldOut = isSoldOut(product);
   return `
     <article class="card" data-id="${product.id}">
       <div class="card-media">${media}</div>
@@ -655,6 +819,7 @@ function cardHtml(product, i) {
         <div class="name">${escapeHtml(product.name)}</div>
         <div class="price">${soldOut ? 'Sold out' : NGN(product.price)}</div>
         <a href="${whatsappLink(product)}" class="enquire" onclick="event.stopPropagation()">Enquire on WhatsApp</a>
+        ${addToCartControlHtml(product)}
       </div>
     </article>`;
 }
@@ -680,6 +845,7 @@ let selectedSize = null;
 
 function openModal(product) {
   selectedSize = null;
+  document.getElementById('modalCartNote').style.display = 'none';
   const soldOut = product.stock !== null && product.stock !== undefined && Number(product.stock) <= 0;
 
   document.getElementById('modalMedia').innerHTML = product.image_url
@@ -729,6 +895,37 @@ function openModal(product) {
 
 function updateModalCta(product) {
   document.getElementById('modalCta').href = whatsappLink(product, selectedSize);
+
+  const addCartBtn = document.getElementById('modalAddCart');
+  const sizes = sizeList(product);
+  const needsSize = sizes.length > 0 && !selectedSize;
+
+  if (hasNoPrice(product)) {
+    addCartBtn.disabled = true;
+    addCartBtn.textContent = 'Message us for pricing';
+  } else if (isSoldOut(product)) {
+    addCartBtn.disabled = true;
+    addCartBtn.textContent = 'Out of stock';
+  } else if (needsSize) {
+    addCartBtn.disabled = true;
+    addCartBtn.textContent = 'Select a size to add to cart';
+  } else {
+    addCartBtn.disabled = false;
+    addCartBtn.textContent = 'Add to Cart';
+  }
+
+  addCartBtn.onclick = () => {
+    const result = addToCart(product, selectedSize, 1);
+    const note = document.getElementById('modalCartNote');
+    note.style.display = 'block';
+    if (result.ok) {
+      note.textContent = 'Added to cart.';
+      note.style.color = '';
+    } else {
+      note.textContent = "Can't add more — you already have the most we have in stock in your cart.";
+      note.style.color = '#a53b3b';
+    }
+  };
 }
 
 function closeModal() {
@@ -739,8 +936,30 @@ document.getElementById('modalClose').addEventListener('click', closeModal);
 backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !backdrop.hidden) closeModal(); });
 
+function handleCardAddToCart(product) {
+  const sizes = sizeList(product);
+  if (sizes.length > 0) {
+    // Size is required — send them into the modal to pick one rather than
+    // guessing, same size-picker used everywhere else.
+    openModal(product);
+    return;
+  }
+  const result = addToCart(product, null, 1);
+  if (!result.ok) {
+    alert("Can't add more — that's the most we have in stock.");
+  } else {
+    openCart();
+  }
+}
+
 document.querySelectorAll('.grid[data-grid]').forEach(grid => {
   grid.addEventListener('click', (e) => {
+    const addBtn = e.target.closest('[data-cart-add]');
+    if (addBtn) {
+      const product = productsById[addBtn.dataset.cartAdd];
+      if (product) handleCardAddToCart(product);
+      return;
+    }
     const card = e.target.closest('.card');
     if (!card) return;
     const product = productsById[card.dataset.id];
@@ -787,6 +1006,154 @@ async function loadProducts() {
     console.error('Product load failed:', err);
   }
 }
+
+/* ---------------- Cart ---------------- */
+// Client-side only for now — no orders table/checkout exists yet (that's
+// next). Persisted to localStorage so it survives a page refresh; this is
+// a real deployed site, not a Claude-rendered preview, so localStorage is
+// fine here.
+const CART_KEY = 'sattyyvvaa_cart_v1';
+let cart = [];
+
+function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    cart = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(cart)) cart = [];
+  } catch (e) {
+    cart = [];
+  }
+}
+function saveCart() {
+  try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (e) { /* storage unavailable, cart stays in-memory for this session */ }
+}
+function cartLineKey(productId, size) { return productId + '::' + (size || ''); }
+
+function addToCart(product, size, qty) {
+  const stock = (product.stock === null || product.stock === undefined) ? Infinity : Number(product.stock);
+  const key = cartLineKey(product.id, size);
+  const line = cart.find(l => cartLineKey(l.id, l.size) === key);
+  const currentQty = line ? line.qty : 0;
+  const nextQty = Math.min(currentQty + qty, stock);
+  if (nextQty <= currentQty) return { ok: false, reason: 'stock' };
+  if (line) {
+    line.qty = nextQty;
+  } else {
+    cart.push({
+      id: product.id,
+      name: product.name,
+      price: Number(product.price) || 0,
+      size: size || null,
+      qty: nextQty,
+      image_url: product.image_url || '',
+      stock
+    });
+  }
+  saveCart();
+  renderCartBadge();
+  return { ok: true };
+}
+
+function changeQty(key, delta) {
+  const line = cart.find(l => cartLineKey(l.id, l.size) === key);
+  if (!line) return;
+  const stock = (line.stock === undefined || line.stock === null) ? Infinity : line.stock;
+  const next = line.qty + delta;
+  if (next <= 0) {
+    cart = cart.filter(l => cartLineKey(l.id, l.size) !== key);
+  } else if (next > stock) {
+    return; // + button is disabled at the cap already; this is a safety no-op
+  } else {
+    line.qty = next;
+  }
+  saveCart();
+  renderCartDrawer();
+  renderCartBadge();
+}
+
+function removeLine(key) {
+  cart = cart.filter(l => cartLineKey(l.id, l.size) !== key);
+  saveCart();
+  renderCartDrawer();
+  renderCartBadge();
+}
+
+function cartCount() { return cart.reduce((sum, l) => sum + l.qty, 0); }
+function cartSubtotal() { return cart.reduce((sum, l) => sum + l.qty * l.price, 0); }
+
+function renderCartBadge() {
+  const badge = document.getElementById('cartBadge');
+  const count = cartCount();
+  badge.textContent = count;
+  badge.classList.toggle('hidden', count === 0);
+}
+
+function renderCartDrawer() {
+  const body = document.getElementById('cartBody');
+  const foot = document.getElementById('cartFoot');
+  if (!cart.length) {
+    body.innerHTML = `<div class="cart-empty">Your cart is empty. Browse the collection and add a piece you love.</div>`;
+    foot.hidden = true;
+    return;
+  }
+  foot.hidden = false;
+  body.innerHTML = cart.map(line => {
+    const key = cartLineKey(line.id, line.size);
+    const atStockCap = line.qty >= line.stock;
+    return `
+      <div class="cart-row" data-key="${escapeHtml(key)}">
+        <img src="${escapeHtml(line.image_url)}" alt="">
+        <div class="ci-info">
+          <div class="ci-name">${escapeHtml(line.name)}</div>
+          <div class="ci-meta">${line.size ? 'Size ' + escapeHtml(line.size) : ''}</div>
+          <div class="ci-price">${NGN(line.price)} each</div>
+          <div class="qty-stepper">
+            <button type="button" data-qty="-1" aria-label="Decrease quantity">−</button>
+            <span>${line.qty}</span>
+            <button type="button" data-qty="1" ${atStockCap ? 'disabled' : ''} aria-label="Increase quantity" title="${atStockCap ? 'Only ' + line.stock + ' in stock' : ''}">+</button>
+          </div>
+          ${atStockCap ? `<div class="cart-stock-note">Max available stock reached.</div>` : ''}
+          <button type="button" class="cart-remove" data-remove>Remove</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  body.querySelectorAll('[data-qty]').forEach(btn => {
+    btn.addEventListener('click', () => changeQty(btn.closest('.cart-row').dataset.key, Number(btn.dataset.qty)));
+  });
+  body.querySelectorAll('[data-remove]').forEach(btn => {
+    btn.addEventListener('click', () => removeLine(btn.closest('.cart-row').dataset.key));
+  });
+
+  document.getElementById('cartSubtotal').textContent = NGN(cartSubtotal());
+}
+
+function openCart() {
+  renderCartDrawer();
+  document.getElementById('cartBackdrop').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeCart() {
+  document.getElementById('cartBackdrop').hidden = true;
+  document.body.style.overflow = '';
+}
+document.getElementById('cartBtn').addEventListener('click', openCart);
+document.getElementById('cartClose').addEventListener('click', closeCart);
+document.getElementById('cartBackdrop').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('cartBackdrop')) closeCart();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('cartBackdrop').hidden) closeCart();
+});
+document.getElementById('cartCheckoutBtn').addEventListener('click', () => {
+  // Placeholder — the checkout form + Paystack flow is the next build step
+  // and doesn't exist yet. Cart contents are already saved to localStorage,
+  // so nothing is lost between now and when checkout ships.
+  alert('Checkout is coming very soon — your cart is saved. For now, message us on WhatsApp to place this order.');
+});
+
+loadCart();
+renderCartBadge();
 
 loadProducts();
 

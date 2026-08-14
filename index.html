@@ -798,6 +798,7 @@
   </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
 (() => {
 'use strict';
@@ -807,6 +808,10 @@
 const SUPABASE_URL = "https://rvjqpnqytclsqdgvskti.supabase.co";
 const SUPABASE_KEY = "sb_publishable_0To8-m7bSlVm2x_d-Nk31Q_pxuYGHeP";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Public/publishable key — safe client-side by design. The matching secret
+// key lives only as an Edge Function secret (verify-payment), never here.
+const PAYSTACK_PUBLIC_KEY = "pk_test_35ab3251da4ee19172692a0e330757f35ca13dc0";
 
 const WHATSAPP_NUMBER = "2348116412960"; // +234 811 641 2960
 
@@ -1222,9 +1227,9 @@ function checkoutFormHtml() {
         <div class="err-msg">Enter a phone number we can reach you on.</div>
       </div>
       <div class="checkout-field" data-field="email">
-        <label for="co_email">Email (optional)</label>
+        <label for="co_email">Email</label>
         <input id="co_email" type="email" autocomplete="email">
-        <div class="err-msg">That doesn't look like a valid email.</div>
+        <div class="err-msg">Enter a valid email — it's needed to process payment.</div>
       </div>
       <div class="checkout-field" data-field="address">
         <label for="co_address">Shipping address</label>
@@ -1258,14 +1263,14 @@ function validateCheckoutForm() {
   const phone = document.getElementById('co_phone').value.trim();
   const email = document.getElementById('co_email').value.trim();
   const address = document.getElementById('co_address').value.trim();
-  const emailInvalid = !!email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const emailValid = !!email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   setFieldError('name', !name);
   setFieldError('phone', !phone);
   setFieldError('address', !address);
-  setFieldError('email', emailInvalid);
+  setFieldError('email', !emailValid);
 
-  return { valid: !!name && !!phone && !!address && !emailInvalid, name, phone, email, address };
+  return { valid: !!name && !!phone && !!address && emailValid, name, phone, email, address };
 }
 
 async function submitCheckout(e) {
@@ -1309,10 +1314,13 @@ async function submitCheckout(e) {
       .single();
     if (orderErr) throw orderErr;
 
-    showCheckoutSuccess(order.tracking_number);
+    // Order is saved (status: pending_payment) — cart's job is done regardless
+    // of what happens with the payment popup next, so clear it now.
     cart = [];
     saveCart();
     renderCartBadge();
+
+    launchPaystackPayment(order.tracking_number, amountTotal, email);
   } catch (err) {
     errEl.textContent = "Couldn't place your order — " + (err.message || 'please check your connection and try again.');
     errEl.classList.add('show');
@@ -1322,16 +1330,85 @@ async function submitCheckout(e) {
   }
 }
 
-function showCheckoutSuccess(trackingNumber) {
+// ---- Payment (Paystack Inline JS) ----
+// Order already exists in the DB at this point (status: pending_payment).
+// Nothing here ever marks an order "paid" directly — that only happens
+// server-side, via the verify-payment Edge Function reacting to Paystack's
+// webhook. This flow only ever shows honest in-progress/retry states.
+
+function launchPaystackPayment(trackingNumber, amountTotal, email) {
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: email,
+    amount: Math.round(amountTotal * 100), // Paystack expects kobo
+    currency: 'NGN',
+    ref: trackingNumber, // matches sattyyvvaa_orders.tracking_number — verify-payment looks orders up by this
+    callback: function (response) {
+      // This only means the popup itself finished — NOT that payment is
+      // verified. Real confirmation is server-side (webhook). Show an
+      // honest "submitted" state and poll for the real status.
+      showPaymentSubmitted(trackingNumber);
+    },
+    onClose: function () {
+      // Customer closed the popup without completing payment. The order
+      // is untouched in the DB (still pending_payment) — nothing lost.
+      showPaymentRetry(trackingNumber, amountTotal, email);
+    }
+  });
+  handler.openIframe();
+}
+
+function showPaymentSubmitted(trackingNumber) {
   const view = document.getElementById('checkoutView');
   view.innerHTML = `
     <div class="checkout-success">
-      <span class="eyebrow" style="color:var(--green)">Order placed</span>
+      <span class="eyebrow" style="color:var(--green)">Payment submitted</span>
       <div class="track-label">Your tracking number</div>
       <div class="track-num">${escapeHtml(trackingNumber)}</div>
-      <p class="note">Save this number to check your order status later. We'll reach out on WhatsApp or by phone shortly to confirm details and arrange payment.</p>
-      <button type="button" class="btn btn-solid cart-checkout-btn" id="checkoutDoneBtn" style="margin-top:24px">Done</button>
+      <p class="note" id="paymentStatusNote">Confirming your payment — this usually takes just a few seconds…</p>
+      <button type="button" class="btn modal-addcart cart-checkout-btn" id="checkoutDoneBtn" style="margin-top:24px">Done</button>
     </div>`;
+  document.getElementById('checkoutDoneBtn').addEventListener('click', closeCart);
+  pollPaymentStatus(trackingNumber, 0);
+}
+
+async function pollPaymentStatus(trackingNumber, attempt) {
+  const MAX_ATTEMPTS = 10; // ~30s total at 3s apart — a UI courtesy only,
+                            // the webhook keeps working after this stops polling
+  if (attempt >= MAX_ATTEMPTS) {
+    const note = document.getElementById('paymentStatusNote');
+    if (note) {
+      note.textContent = "Still confirming — this can occasionally take a bit longer. Your order and tracking number are saved either way; check back shortly or message us on WhatsApp if you don't hear from us.";
+    }
+    return;
+  }
+  try {
+    const { data, error } = await sb.rpc('get_order_by_tracking', { p_tracking_number: trackingNumber }).single();
+    if (!error && data && data.status === 'paid') {
+      const note = document.getElementById('paymentStatusNote');
+      const eyebrow = document.querySelector('#checkoutView .eyebrow');
+      if (eyebrow) eyebrow.textContent = 'Payment confirmed';
+      if (note) note.textContent = "Payment confirmed — thank you! We'll be in touch on WhatsApp to arrange production and delivery.";
+      return; // stop polling — done
+    }
+  } catch (err) {
+    console.error('Payment status check failed:', err);
+  }
+  setTimeout(() => pollPaymentStatus(trackingNumber, attempt + 1), 3000);
+}
+
+function showPaymentRetry(trackingNumber, amountTotal, email) {
+  const view = document.getElementById('checkoutView');
+  view.innerHTML = `
+    <div class="checkout-success">
+      <span class="eyebrow" style="color:var(--gold)">Payment not completed</span>
+      <div class="track-label">Your tracking number</div>
+      <div class="track-num">${escapeHtml(trackingNumber)}</div>
+      <p class="note">Your order is saved — nothing's lost. You can try paying again now, or come back to it later using your tracking number.</p>
+      <button type="button" class="btn btn-solid cart-checkout-btn" id="retryPaymentBtn" style="margin-top:24px">Pay now</button>
+      <button type="button" class="btn modal-addcart cart-checkout-btn" id="checkoutDoneBtn" style="margin-top:10px">Done for now</button>
+    </div>`;
+  document.getElementById('retryPaymentBtn').addEventListener('click', () => launchPaystackPayment(trackingNumber, amountTotal, email));
   document.getElementById('checkoutDoneBtn').addEventListener('click', closeCart);
 }
 document.getElementById('cartBtn').addEventListener('click', openCart);

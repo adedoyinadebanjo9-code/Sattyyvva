@@ -1515,7 +1515,7 @@ function renderTrackDrawerHome() {
     </div>
     ${listHtml}`;
 
-  document.getElementById('trackLookupBtn').addEventListener('click', handleTrackLookup);
+  document.getElementById('trackLookupBtn').addEventListener('click', () => handleTrackLookup());
   const input = document.getElementById('trackInput');
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleTrackLookup(); });
   input.addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase(); });

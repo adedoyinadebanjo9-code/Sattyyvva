@@ -1618,38 +1618,41 @@ async function submitCheckout(e) {
   btn.disabled = true;
   btn.textContent = 'Placing order…';
 
-  const amountTotal = cartSubtotal();
-
-  try {
+try {
+    // Only product_id, size, and quantity go to the server — price and
+    // product_name are NOT sent, because create_order now looks those up
+    // itself from sattyyvvaa_products. This closes a price-tampering gap:
+    // previously the client computed and sent the price/total directly.
     const itemsPayload = cart.map(line => ({
       product_id: line.id,
-      product_name: line.name,
       size: line.size,
-      unit_price: line.price,
-      quantity: line.qty,
-      subtotal: line.price * line.qty
-    }));
-    // Same line items, reshaped for the receipt renderer (name/qty/unitPrice keys).
-    const receiptItems = cart.map(line => ({
-      name: line.name, size: line.size, qty: line.qty,
-      unitPrice: line.price, subtotal: line.price * line.qty
+      quantity: line.qty
     }));
 
     // Single atomic Postgres function (create_order) — inserts the order
-    // and its line items in one transaction, so a mid-way failure can't
-    // leave an order with no items.
+    // and its line items in one transaction. It also recomputes
+    // price/name/total server-side and returns the authoritative amount —
+    // that's what we use below for both the receipt and the actual
+    // Paystack charge.
     const { data: order, error: orderErr } = await sb
       .rpc('create_order', {
         p_customer_name: name,
         p_customer_phone: phone,
         p_customer_email: email || null,
         p_shipping_address: address,
-        p_amount_total: amountTotal,
         p_currency: 'NGN',
         p_items: itemsPayload
       })
       .single();
     if (orderErr) throw orderErr;
+
+    // Receipt items come back from the server (order.items), built from
+    // the same authoritative product lookup — not the client's cart
+    // snapshot — so what's shown always matches what was charged.
+    const receiptItems = (order.items || []).map(it => ({
+      name: it.product_name, size: it.size, qty: it.quantity,
+      unitPrice: it.unit_price, subtotal: it.subtotal
+    }));
 
     // Saved to this device immediately — before payment resolves — so a
     // customer can find and retry a pending_payment order even if the
@@ -1658,16 +1661,10 @@ async function submitCheckout(e) {
       trackingNumber: order.tracking_number,
       createdAt: new Date().toISOString(),
       items: receiptItems,
-      amountTotal: amountTotal,
+      amountTotal: order.amount_total, // server-computed, not client cartSubtotal()
       status: 'pending_payment'
     };
     saveOrderToDevice(orderRecord);
-
-    // Order is saved (status: pending_payment) — cart's job is done regardless
-    // of what happens with the payment popup next, so clear it now.
-    cart = [];
-    saveCart();
-    renderCartBadge();
 
     launchPaystackPayment(orderRecord, email);
   } catch (err) {

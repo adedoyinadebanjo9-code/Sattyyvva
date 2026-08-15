@@ -68,6 +68,7 @@
     letter-spacing:0.14em;
   }
   .topbar nav{display:flex; gap:28px; font-size:12px; letter-spacing:0.08em; text-transform:uppercase;}
+  .nav-links{display:flex; gap:28px;}
   .topbar nav a{opacity:0.85; transition:opacity 0.25s ease;}
   .topbar nav a:hover{opacity:1;}
   .topbar nav a:focus-visible, a:focus-visible, button:focus-visible{
@@ -731,12 +732,7 @@
   <header class="topbar">
     <a href="#top" class="wordmark">TTYYVVA</a>
    <nav>
-  <div class="nav-links">
-    <a href="#dresses">Dresses</a>
-    <a href="#tops">Tops</a>
-    <a href="#bottoms">Bottoms</a>
-    <a href="#twopieces">Two-Pieces</a>
-  </div>
+  <div class="nav-links" id="navLinks"></div>
   <button class="cart-btn" id="cartBtn" type="button" aria-label="Open cart">
     Cart<span class="cart-badge hidden" id="cartBadge">0</span>
   </button>
@@ -757,23 +753,14 @@
      <h1 class="hero-title"><span class="to">Welcome to </span>TTYYVVA<span class="to">Diva</span></h1> 
       <p class="hero-sub">Dresses, tops, bottoms and two-pieces — crafted with intention, worn with ease. This is TTYYVVA.</p>
       <div class="hero-cta">
-        <a href="#dresses" class="btn btn-solid">Shop the collection</a>
+        <a href="#shop" class="btn btn-solid">Shop the collection</a>
       </div>
     </div>
     <div class="scroll-cue"><span class="line"></span> Scroll</div>
   </section>
 
-  <div class="rail-wrap" aria-label="Shop by category">
-    <div class="rail">
-      <div class="rail-item"><span class="rail-num">01</span><a href="#dresses">Dresses</a></div>
-      <div class="rail-item"><span class="rail-num">02</span><a href="#tops">Tops</a></div>
-      <div class="rail-item"><span class="rail-num">03</span><a href="#bottoms">Bottoms</a></div>
-      <div class="rail-item"><span class="rail-num">04</span><a href="#twopieces">Two-Pieces</a></div>
-      <div class="rail-item"><span class="rail-num">01</span><a href="#dresses">Dresses</a></div>
-      <div class="rail-item"><span class="rail-num">02</span><a href="#tops">Tops</a></div>
-      <div class="rail-item"><span class="rail-num">03</span><a href="#bottoms">Bottoms</a></div>
-      <div class="rail-item"><span class="rail-num">04</span><a href="#twopieces">Two-Pieces</a></div>
-    </div>
+  <div class="rail-wrap" id="shop" aria-label="Shop by category">
+    <div class="rail" id="railTrack"></div>
   </div>
 
   <div class="intro">
@@ -781,53 +768,8 @@
     <h2>These are not regular clothes <em>these are</em> the outfits we make movies in.</h2>
   </div>
 
-  <!-- DRESSES -->
-  <section class="category" id="dresses" data-category="dresses">
-    <div class="category-head">
-      <div>
-        <span class="eyebrow">01 — Category</span>
-        <h3>Dresses</h3>
-      </div>
-      <div class="category-count" data-count>Loading…</div>
-    </div>
-    <div class="grid" data-grid></div>
-  </section>
-
-  <!-- TOPS -->
-  <section class="category" id="tops" data-category="tops">
-    <div class="category-head">
-      <div>
-        <span class="eyebrow">02 — Category</span>
-        <h3>Tops</h3>
-      </div>
-      <div class="category-count" data-count>Loading…</div>
-    </div>
-    <div class="grid" data-grid></div>
-  </section>
-
-  <!-- BOTTOMS -->
-  <section class="category" id="bottoms" data-category="bottoms">
-    <div class="category-head">
-      <div>
-        <span class="eyebrow">03 — Category</span>
-        <h3>Bottoms</h3>
-      </div>
-      <div class="category-count" data-count>Loading…</div>
-    </div>
-    <div class="grid" data-grid></div>
-  </section>
-
-  <!-- TWO-PIECES -->
-  <section class="category" id="twopieces" data-category="twopieces">
-    <div class="category-head">
-      <div>
-        <span class="eyebrow">04 — Category</span>
-        <h3>Two-Pieces</h3>
-      </div>
-      <div class="category-count" data-count>Loading…</div>
-    </div>
-    <div class="grid" data-grid></div>
-  </section>
+  <!-- Category sections are rendered dynamically from sattyyvvaa_categories -->
+  <div id="categorySections"></div>
 
   <!-- Product detail modal -->
   <div class="modal-backdrop" id="modalBackdrop" hidden>
@@ -880,12 +822,8 @@
         <div class="footer-wordmark">TTYYVVA</div>
         <p>Welcome to TTYYVVA — a Lagos-made womenswear house built on considered cuts and honest fabric. Every piece is finished to order.</p>
       </div>
-      <div class="footer-col">
+      <div class="footer-col" id="footerShopCol">
         <h4>Shop</h4>
-        <a href="#dresses">Dresses</a>
-        <a href="#tops">Tops</a>
-        <a href="#bottoms">Bottoms</a>
-        <a href="#twopieces">Two-Pieces</a>
       </div>
       <div class="footer-col">
         <h4>Contact</h4>
@@ -931,7 +869,11 @@ const NGN = n => (n === null || n === undefined || n === '')
   ? '₦—'
   : '₦' + Math.max(0, Math.round(Number(n) || 0)).toLocaleString('en-NG');
 
-const CAT_LABEL = { dresses: 'Dresses', tops: 'Tops', bottoms: 'Bottoms', twopieces: 'Two-Pieces' };
+let categoriesCache = [];
+function catLabelOf(slug) {
+  const c = categoriesCache.find(c => c.slug === slug);
+  return c ? c.label : slug;
+}
 const PH_CLASSES = ['ph1', 'ph2', 'ph3', 'ph4'];
 
 let productsById = {};
@@ -1113,20 +1055,59 @@ function handleCardAddToCart(product) {
   }
 }
 
-document.querySelectorAll('.grid[data-grid]').forEach(grid => {
-  grid.addEventListener('click', (e) => {
-    const addBtn = e.target.closest('[data-cart-add]');
-    if (addBtn) {
-      const product = productsById[addBtn.dataset.cartAdd];
-      if (product) handleCardAddToCart(product);
-      return;
-    }
-    const card = e.target.closest('.card');
-    if (!card) return;
-    const product = productsById[card.dataset.id];
-    if (product) openModal(product);
-  });
+document.getElementById('categorySections').addEventListener('click', (e) => {
+  const grid = e.target.closest('.grid[data-grid]');
+  if (!grid) return;
+  const addBtn = e.target.closest('[data-cart-add]');
+  if (addBtn) {
+    const product = productsById[addBtn.dataset.cartAdd];
+    if (product) handleCardAddToCart(product);
+    return;
+  }
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const product = productsById[card.dataset.id];
+  if (product) openModal(product);
 });
+
+async function loadCategoriesAndRenderShell() {
+  try {
+    const { data, error } = await sb
+      .from('sattyyvvaa_categories')
+      .select('*')
+      .eq('active', true)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    categoriesCache = data || [];
+  } catch (err) {
+    console.error('Category load failed:', err);
+    categoriesCache = [];
+  }
+
+  document.getElementById('navLinks').innerHTML = categoriesCache
+    .map(c => `<a href="#${escapeHtml(c.slug)}">${escapeHtml(c.label)}</a>`).join('');
+
+  const railItemsHtml = categoriesCache
+    .map((c, i) => `<div class="rail-item"><span class="rail-num">${String(i + 1).padStart(2, '0')}</span><a href="#${escapeHtml(c.slug)}">${escapeHtml(c.label)}</a></div>`)
+    .join('');
+  document.getElementById('railTrack').innerHTML = railItemsHtml + railItemsHtml;
+
+  document.getElementById('categorySections').innerHTML = categoriesCache.map((c, i) => `
+    <section class="category" id="${escapeHtml(c.slug)}" data-category="${escapeHtml(c.slug)}">
+      <div class="category-head">
+        <div>
+          <span class="eyebrow">${String(i + 1).padStart(2, '0')} — Category</span>
+          <h3>${escapeHtml(c.label)}</h3>
+        </div>
+        <div class="category-count" data-count>Loading…</div>
+      </div>
+      <div class="grid" data-grid></div>
+    </section>`).join('');
+
+  const footerCol = document.getElementById('footerShopCol');
+  footerCol.innerHTML = '<h4>Shop</h4>' + categoriesCache
+    .map(c => `<a href="#${escapeHtml(c.slug)}">${escapeHtml(c.label)}</a>`).join('');
+}
 
 async function loadProducts() {
   const sections = document.querySelectorAll('.category[data-category]');
@@ -1776,7 +1757,7 @@ document.addEventListener('keydown', (e) => {
 loadCart();
 renderCartBadge();
 
-loadProducts();
+loadCategoriesAndRenderShell().then(loadProducts);
 
 // If hero video has no real source, keep the gradient background only
 const heroVideo = document.querySelector('.hero-video');

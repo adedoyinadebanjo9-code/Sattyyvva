@@ -94,6 +94,7 @@ h2{font-size:16px;margin-bottom:4px}
  <div class="tabs">
   <button class="tab-btn active" id="tabProductsBtn" type="button">Products</button>
   <button class="tab-btn" id="tabOrdersBtn" type="button">Orders</button>
+  <button class="tab-btn" id="tabCategoriesBtn" type="button">Categories</button>
  </div>
 
  <div id="productsPanel">
@@ -151,6 +152,27 @@ h2{font-size:16px;margin-bottom:4px}
   </div>
  </div>
 
+ <div id="categoriesPanel" class="hidden">
+  <div class="panel">
+   <h2>Add a category</h2>
+   <p class="sub">New categories are active immediately and appear on the storefront once they have at least one product, with a "coming soon" note if empty.</p>
+   <div class="form-grid">
+    <div class="field"><label>Label</label><input id="c_label" placeholder="e.g. Outerwear"></div>
+    <div class="field"><label>Slug (auto-generated, editable)</label><input id="c_slug" placeholder="outerwear"></div>
+   </div>
+   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px">
+    <button class="btn" id="saveCategoryBtn">Add category</button>
+    <span class="status-msg" id="categorySaveStatus"></span>
+   </div>
+  </div>
+  <div class="panel">
+   <h2><span id="categoryCount">Categories</span><button class="btn small secondary" id="refreshCategories" style="float:right">Refresh</button></h2>
+   <p class="sub">Order here controls storefront order. Turning a category off hides it from the storefront and the product-add dropdown — it does not delete or hide products already in it.</p>
+   <div class="note status-msg" id="categoriesNote">Loading categories…</div>
+   <div class="product-list" id="categoryList"></div>
+  </div>
+ </div>
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -165,7 +187,11 @@ const SUPABASE_KEY="sb_publishable_0To8-m7bSlVm2x_d-Nk31Q_pxuYGHeP";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 const NGN=n=>n==null||n===''?'Enquire':'₦'+Math.max(0,Math.round(Number(n)||0)).toLocaleString('en-NG');
-const CATS={dresses:'Dresses',tops:'Tops',bottoms:'Bottoms',twopieces:'Two-Pieces'};
+let categoriesCache=[];
+function catLabelOf(slug){
+ const c=categoriesCache.find(c=>c.slug===slug);
+ return c?c.label:slug;
+}
 
 /* ---------------- Login gate ---------------- */
 async function doLogin(){
@@ -180,6 +206,7 @@ async function doLogin(){
 function enterConsole(){
  $('gateScreen').classList.add('hidden'); $('consoleScreen').classList.remove('hidden');
  $('logoutBtn').classList.remove('hidden');
+ loadCategories();
  loadProducts();
 }
 function showGate(){
@@ -215,7 +242,8 @@ $('imgFile').addEventListener('change',async()=>{
 /* ---------------- Save (create/update) product ---------------- */
 function resetForm(){
  $('editingId').value=''; $('formTitle').textContent='Add a product';
- $('f_name').value=''; $('f_category').value='dresses'; $('f_price').value=''; $('f_stock').value='1'; $('f_desc').value='';
+ const firstActive=categoriesCache.find(c=>c.active);
+ $('f_name').value=''; $('f_category').value=firstActive?firstActive.slug:''; $('f_price').value=''; $('f_stock').value='1'; $('f_desc').value='';
  $('f_colour').value=''; $('f_fabric').value=''; $('f_sizes').value=''; $('f_production_time').value='';
  $('imgPreview').src=''; $('imgStatus').textContent=''; pendingImageUrl=null;
  $('cancelEditBtn').classList.add('hidden');
@@ -291,7 +319,7 @@ function renderProducts(rows){
    <img src="${p.image_url||''}" alt="">
    <div class="info">
     <div class="name">${escapeHtml(p.name)}${!p.active?'<span class="pill off">Off</span>':''}${stockPill}</div>
-    <div class="meta">${CATS[p.category]||p.category} · ${NGN(p.price)}</div>
+    <div class="meta">${catLabelOf(p.category)} · ${NGN(p.price)}</div>
    </div>
    <div class="actions">
     <button class="btn small secondary" data-act="edit">Edit</button>
@@ -322,16 +350,21 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 
 /* ---------------- Tabs ---------------- */
 function showProductsTab(){
- $('tabProductsBtn').classList.add('active'); $('tabOrdersBtn').classList.remove('active');
- $('productsPanel').classList.remove('hidden'); $('ordersPanel').classList.add('hidden');
+ $('tabProductsBtn').classList.add('active'); $('tabOrdersBtn').classList.remove('active'); $('tabCategoriesBtn').classList.remove('active');
+ $('productsPanel').classList.remove('hidden'); $('ordersPanel').classList.add('hidden'); $('categoriesPanel').classList.add('hidden');
 }
 function showOrdersTab(){
- $('tabOrdersBtn').classList.add('active'); $('tabProductsBtn').classList.remove('active');
- $('ordersPanel').classList.remove('hidden'); $('productsPanel').classList.add('hidden');
+ $('tabOrdersBtn').classList.add('active'); $('tabProductsBtn').classList.remove('active'); $('tabCategoriesBtn').classList.remove('active');
+ $('ordersPanel').classList.remove('hidden'); $('productsPanel').classList.add('hidden'); $('categoriesPanel').classList.add('hidden');
  if(!ordersLoadedOnce){ loadOrders(); }
+}
+function showCategoriesTab(){
+ $('tabCategoriesBtn').classList.add('active'); $('tabProductsBtn').classList.remove('active'); $('tabOrdersBtn').classList.remove('active');
+ $('categoriesPanel').classList.remove('hidden'); $('productsPanel').classList.add('hidden'); $('ordersPanel').classList.add('hidden');
 }
 $('tabProductsBtn').addEventListener('click',showProductsTab);
 $('tabOrdersBtn').addEventListener('click',showOrdersTab);
+$('tabCategoriesBtn').addEventListener('click',showCategoriesTab);
 
 /* ---------------- Orders ---------------- */
 const STATUSES=['pending_payment','paid','shipped','delivered','cancelled'];
@@ -421,6 +454,98 @@ async function updateOrderStatus(o,selectEl){
  }finally{
   selectEl.disabled=false;
  }
+}
+
+/* ---------------- Categories ---------------- */
+function slugify(s){
+ return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+$('c_label').addEventListener('input',()=>{
+ if(!$('c_slug').dataset.touched) $('c_slug').value=slugify($('c_label').value);
+});
+$('c_slug').addEventListener('input',()=>{ $('c_slug').dataset.touched='1'; });
+
+async function loadCategories(){
+ $('categoriesNote').classList.remove('hidden'); $('categoriesNote').textContent='Loading categories…'; $('categoriesNote').className='status-msg';
+ try{
+  const {data,error}=await sb.from('sattyyvvaa_categories').select('*').order('sort_order',{ascending:true});
+  if(error) throw error;
+  categoriesCache=data||[];
+  renderCategoryOptions();
+  renderCategoryList();
+ }catch(err){
+  $('categoriesNote').classList.remove('hidden');
+  $('categoriesNote').textContent='Could not load categories: '+(err.message||err);
+  $('categoriesNote').className='status-msg err';
+ }
+}
+$('refreshCategories').addEventListener('click',loadCategories);
+
+function renderCategoryOptions(){
+ const sel=$('f_category');
+ const current=sel.value;
+ sel.innerHTML=categoriesCache.map(c=>`<option value="${c.slug}">${escapeHtml(c.label)}${c.active?'':' (inactive)'}</option>`).join('');
+ if(categoriesCache.some(c=>c.slug===current)) sel.value=current;
+}
+
+function renderCategoryList(){
+ const list=$('categoryList'); list.innerHTML='';
+ $('categoryCount').textContent=`Categories (${categoriesCache.length})`;
+ if(!categoriesCache.length){ $('categoriesNote').classList.remove('hidden'); $('categoriesNote').textContent='No categories yet — add one above.'; return; }
+ $('categoriesNote').classList.add('hidden');
+ categoriesCache.forEach((c,idx)=>{
+  const row=document.createElement('div'); row.className='product-row';
+  row.innerHTML=`
+   <div class="info">
+    <div class="name">${escapeHtml(c.label)}${!c.active?'<span class="pill off">Off</span>':''}</div>
+    <div class="meta">/${escapeHtml(c.slug)} · order ${c.sort_order}</div>
+   </div>
+   <div class="actions">
+    <button class="btn small secondary" data-act="up" ${idx===0?'disabled':''}>↑</button>
+    <button class="btn small secondary" data-act="down" ${idx===categoriesCache.length-1?'disabled':''}>↓</button>
+    <button class="btn small secondary" data-act="toggle">${c.active?'Turn off':'Turn on'}</button>
+   </div>`;
+  row.querySelector('[data-act="up"]').addEventListener('click',()=>moveCategory(c,-1));
+  row.querySelector('[data-act="down"]').addEventListener('click',()=>moveCategory(c,1));
+  row.querySelector('[data-act="toggle"]').addEventListener('click',()=>toggleCategoryActive(c));
+  list.appendChild(row);
+ });
+}
+
+async function saveCategory(){
+ const label=$('c_label').value.trim();
+ const slug=slugify($('c_slug').value||label);
+ const st=$('categorySaveStatus');
+ if(!label||!slug){ st.textContent='Label is required.'; st.className='status-msg err'; return; }
+ st.textContent='Saving…'; st.className='status-msg';
+ try{
+  const maxOrder=categoriesCache.reduce((m,c)=>Math.max(m,c.sort_order||0),0);
+  const {error}=await sb.from('sattyyvvaa_categories').insert([{slug,label,sort_order:maxOrder+1,active:true}]);
+  if(error) throw error;
+  st.textContent='Added.'; st.className='status-msg ok';
+  $('c_label').value=''; $('c_slug').value=''; $('c_slug').dataset.touched='';
+  loadCategories();
+ }catch(err){
+  st.textContent='Could not add category: '+(err.code==='23505'?'That slug is already in use.':(err.message||err));
+  st.className='status-msg err';
+ }
+}
+$('saveCategoryBtn').addEventListener('click',saveCategory);
+
+async function toggleCategoryActive(c){
+ const {error}=await sb.from('sattyyvvaa_categories').update({active:!c.active}).eq('id',c.id);
+ if(error){ alert('Could not update: '+error.message); return; }
+ loadCategories();
+}
+
+async function moveCategory(c,direction){
+ const idx=categoriesCache.findIndex(x=>x.id===c.id);
+ const swapWith=categoriesCache[idx+direction];
+ if(!swapWith) return;
+ const {error:e1}=await sb.from('sattyyvvaa_categories').update({sort_order:swapWith.sort_order}).eq('id',c.id);
+ const {error:e2}=await sb.from('sattyyvvaa_categories').update({sort_order:c.sort_order}).eq('id',swapWith.id);
+ if(e1||e2){ alert('Could not reorder: '+((e1||e2).message)); return; }
+ loadCategories();
 }
 
 /* ---------------- Session check on load ---------------- */
